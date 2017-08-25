@@ -9,19 +9,23 @@
         android:orientation="vertical"
         android:layout_height="match_parent"
         android:layout_width="match_parent"
-        android:layout_marginTop=""
-    android:layout_marginLeft="100dp">
+        android:layout_marginTop="100dp"
+        android:gravity="center_horizontal"
+  >
 
     <TextView
+        android:layout_margin="10dp"
         android:id="@+id/tv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="20sp"
+        android:textColor="#996633"
         android:text="经典飞机大战"
          />
 
     <Button
         android:id="@+id/start"
+        android:layout_margin="10dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/btn"
@@ -30,6 +34,7 @@
    />
     <Button
         android:id="@+id/score"
+        android:layout_margin="10dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="#FFFFFF"

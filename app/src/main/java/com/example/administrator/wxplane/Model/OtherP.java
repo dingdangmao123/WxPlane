@@ -11,6 +11,7 @@ public class OtherP {
     private int fire;
     private int type;
     private int current;
+
     public OtherP(float x, float y, float speed, int fire, int type) {
         this.x = x;
         this.y = y;
