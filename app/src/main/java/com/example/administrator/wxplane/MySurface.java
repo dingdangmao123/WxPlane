@@ -1,5 +1,6 @@
 package com.example.administrator.wxplane;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -8,7 +9,11 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.Xfermode;
+import android.media.AudioManager;
+import android.media.SoundPool;
+import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -19,6 +24,7 @@ import android.widget.Toast;
 import com.example.administrator.wxplane.Model.Bg;
 import com.example.administrator.wxplane.Model.Bullet;
 import com.example.administrator.wxplane.Model.OtherP;
+import com.example.administrator.wxplane.Model.Zone;
 
 import java.util.LinkedList;
 import java.util.Random;
@@ -39,10 +45,10 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
     SurfaceHolder holder;
     Object obj=new Object();
 
-    float sl;
-    float st;
-    float sr;
-    float sb;
+    int sl;
+    int st;
+    int sr;
+    int sb;
 
     Paint p;
     Paint scorep;
@@ -52,7 +58,12 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
     Bitmap botherp;
     Bitmap[] otherpbit;
     Bitmap[] bomb;
+
+    Bitmap go;
+    Bitmap back;
+
     int[] fire;
+    Zone[] menu;
     int score=0;
 
 
@@ -75,6 +86,11 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
     float h;
 
 
+    SoundPool sp;
+    int shootID;
+    int bombID;
+    int overID;
+
     boolean touch=false;
 
     public MySurface(Context context) {
@@ -85,9 +101,11 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
         this(context, attrs,0);
     }
 
-    public MySurface(Context context, AttributeSet attrs, int defStyleAttr) {
+    public MySurface(Context context, AttributeSet attrs, int defStyleAttr){
+
         super(context, attrs, defStyleAttr);
         init(context, attrs);
+
     }
     public void init(Context context, AttributeSet attrs){
 
@@ -116,10 +134,16 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
         Bitmap tmp1=BitmapFactory.decodeResource(getResources(), R.drawable.bomb1);
         Bitmap tmp2=BitmapFactory.decodeResource(getResources(), R.drawable.bomb2);
 
+
+
         bomb=new Bitmap[]{tmp1,tmp2};
-
         fire=new int[]{2000,5000};
-
+        SoundPool.Builder sb= new SoundPool.Builder();
+        sb.setMaxStreams(2);
+        sp=sb.build();
+        shootID=sp.load(getContext(),R.raw.shoot,1);
+        bombID=sp.load(getContext(),R.raw.explosion,1);
+        overID=sp.load(getContext(),R.raw.over,1);
     }
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
@@ -154,8 +178,24 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
         float y=event.getY();
         if(start){
             if(event.getAction()==MotionEvent.ACTION_DOWN){
-                if(x>=sl&&x<=sr&&y>=st&&y<=sb)
-                    start=false;
+                int i=0;
+                for(i=0;i<menu.length;i++){
+                    if(x>=menu[i].getL()&&x<=menu[i].getR()&&y>=menu[i].getT()&&y<=menu[i].getB()){
+                        break;
+                    }
+                }
+                switch(i){
+                    case 0:
+                        start=false;
+                        break;
+                    case 1:
+                        if(getContext() instanceof Game){
+                            ((Activity)getContext()).finish();
+                        }
+                        break;
+                    default:
+                        break;
+                }
                 Log.i("Unit",String.valueOf(sl)+" "+String.valueOf(sr)+" "+String.valueOf(st)+" "+String.valueOf(sb));
                 Log.i("Unit",String.valueOf(x)+" "+String.valueOf(y));
             }
@@ -202,12 +242,27 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
 
         int w=getWidth();
         int h=getHeight();
-        sl=200;
-        st=300;
-        sr=sl+100;
-        sb=st+30;
-        canvas.drawText("Go",sl,st,scorep);
 
+        if(go==null)
+            go=BitmapFactory.decodeResource(getResources(), R.drawable.go);
+        if(back==null)
+            back=BitmapFactory.decodeResource(getResources(), R.drawable.back);
+
+        if(menu==null)
+            menu=new Zone[2];
+
+        canvas.drawBitmap(go,w/2-go.getWidth()/2,300,p);
+        if(menu[0]==null)
+            menu[0]=new Zone(w/2-go.getWidth()/2,300,w/2+go.getWidth()/2,300+go.getHeight());
+        else
+            menu[0].init(w/2-go.getWidth()/2,300,w/2+go.getWidth()/2,300+go.getHeight());
+
+        int bottom=300+go.getHeight();
+        canvas.drawBitmap(back,w/2-back.getWidth()/2,bottom+30,p);
+        if(menu[1]==null)
+            menu[1]=new Zone(w/2-go.getWidth()/2,bottom+20,w/2+back.getWidth()/2,bottom+30+back.getHeight());
+        else
+            menu[1].init(w/2-go.getWidth()/2,300+go.getHeight()+20,w/2+back.getWidth()/2,bottom+30+back.getHeight());
 
 
     }
@@ -216,19 +271,21 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
         canvas.drawColor(Color.parseColor("#cccccc"));
         Bg cache;
         if(bg.size()==0){
-            cache = new Bg(r.nextInt(getWidth()), 0, r.nextInt(100));
+            cache = new Bg(r.nextInt(getWidth()), 0, 20+r.nextInt(100));
             bg.add(cache);
         }else{
-            int num =2;
+            int num =1;
             cache=bg.getLast();
-            if(cache.getY()>100) {
+            if(cache.getY()>150) {
                 for (int i = 0; i < num; i++) {
+
                     if (bg_cache.size() > 0) {
                         cache = bg_cache.remove(0);
-                        cache.init(r.nextInt(getWidth()), 0, r.nextInt(100));
+                        cache.init(r.nextInt(getWidth()), 0, 20+r.nextInt(100));
                     } else {
-                        cache = new Bg(r.nextInt(getWidth()), 0, r.nextInt(100));
-                    }
+                        cache = new Bg(r.nextInt(getWidth()), 0, 20+r.nextInt(100));
+                        Log.i("Unit","new bg");
+                   }
                     bg.add(cache);
                 }
             }
@@ -238,8 +295,10 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
         int h=getHeight();
         while(bg.size()>0){
             tmp=bg.get(0);
-            if(tmp.getY()-tmp.getRadius()>=h)
+            if(tmp.getY()-tmp.getRadius()>=h) {
                 bg_cache.add(bg.remove(0));
+                Log.i("Unit","cache");
+            }
             else
                 break;
         }
@@ -272,6 +331,7 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
                     }else{
                         otmp.setCurrent(otmp.getCurrent()-BULLET_FIRE);
                     }
+                    sp.play(bombID,1,1,1,0,1);
                 }
             }
         }
@@ -290,6 +350,7 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
             if(x2>=l+20&&x2<=r-20&&y2>=t+20&&y2<=b-20)
                 flag=true;
             if(flag){
+                sp.play(overID,1,1,1,0,1);
                 Log.i("Unit","stop");
                 start=true;
                 flush();
@@ -333,17 +394,13 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
                 continue;
             }
             canvas.drawBitmap(otherpbit[tmp.getType()],tmp.getX(),tmp.getY(),p);
-            if(tmp.getFire()-tmp.getCurrent()==BULLET_FIRE){
-               // canvas.drawBitmap(bomb[0],tmp.getX(),tmp.getY(),p);
-            }else if(tmp.getFire()-tmp.getCurrent()>BULLET_FIRE){
-                //canvas.drawBitmap(bomb[1],tmp.getX(),tmp.getY(),p);
-            }
             tmp.setY(tmp.getY()+tmp.getSpeed());
         }
     }
     private void drawBullet(Canvas canvas){
         if(bullet.size()==0){
             bullet.add(new Bullet(x +w / 2, y + 10));
+            sp.play(shootID,1,1,1,0,1);
             return ;
         }
         if(bullet.size()>0) {
@@ -359,6 +416,7 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
                         cache=new Bullet(x +w / 2, y + 10);
 
                     bullet.add(cache);
+                    sp.play(shootID,1,1,1,0,1);
                 }
         }
         int l=0;
