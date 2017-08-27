@@ -5,5 +5,60 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.example.administrator.wxplane.Score">
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_height="551dp"
+        android:layout_width="368dp"
+        android:gravity="center_horizontal"
+        tools:layout_editor_absoluteY="8dp"
+        tools:layout_editor_absoluteX="8dp">
+        <TextView
+            android:layout_margin="10dp"
+            android:id="@+id/tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:textColor="#996633"
+            android:text="得分榜"
+            />
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:gravity="center_horizontal"
+            android:layout_height="wrap_content">
+    <Button
+        android:id="@+id/left"
+        android:layout_margin="10dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/btn"
+        android:text="分数排序"
+        android:textColor="#FFFFFF"
+        />
 
+            <Button
+        android:id="@+id/delete"
+        android:layout_margin="10dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#FFFFFF"
+        android:background="@drawable/btn"
+        android:text="删除"
+        />       </LinearLayout>
+        <android.support.v4.widget.ContentLoadingProgressBar
+            android:id="@+id/bar"
+            android:visibility="gone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+            <android.support.v7.widget.RecyclerView
+                android:layout_margin="10dp"
+                android:id="@+id/list"
+
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+
+
+
+    </LinearLayout>
 </android.support.constraint.ConstraintLayout>

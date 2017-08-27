@@ -7,19 +7,12 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.PixelFormat;
-import android.graphics.Rect;
-import android.graphics.RectF;
-import android.graphics.Xfermode;
-import android.media.AudioManager;
 import android.media.SoundPool;
-import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.widget.Toast;
 
 import com.example.administrator.wxplane.Model.Bg;
 import com.example.administrator.wxplane.Model.Bullet;
@@ -35,20 +28,13 @@ import java.util.Random;
 
 public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Runnable {
 
-   final  int BULLET_FIRE=1000;
-
+    final  int BULLET_FIRE=1000;
 
 
     boolean stop=false;
     boolean start=false;
 
     SurfaceHolder holder;
-    Object obj=new Object();
-
-    int sl;
-    int st;
-    int sr;
-    int sb;
 
     Paint p;
     Paint scorep;
@@ -81,6 +67,9 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
 
     float x=0;
     float y=0;
+    float lastx=0;
+    float lasty=0;
+
 
     float w;
     float h;
@@ -90,6 +79,9 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
     int shootID;
     int bombID;
     int overID;
+
+
+    long boottime=System.currentTimeMillis();
 
     boolean touch=false;
 
@@ -113,8 +105,6 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
         holder.addCallback(this);
         p=new Paint();
         p.setStrokeWidth(1);
-       // p.setFilterBitmap(true);
-      //  p.setXfermode();
 
         bgp=new Paint();
         bgp.setAntiAlias(true);
@@ -133,8 +123,6 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
 
         Bitmap tmp1=BitmapFactory.decodeResource(getResources(), R.drawable.bomb1);
         Bitmap tmp2=BitmapFactory.decodeResource(getResources(), R.drawable.bomb2);
-
-
 
         bomb=new Bitmap[]{tmp1,tmp2};
         fire=new int[]{2000,5000};
@@ -170,7 +158,6 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         stop=true;
-        Log.i("Unit","destroy");
     }
     @Override
     public boolean onTouchEvent(MotionEvent event) {
@@ -187,6 +174,7 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
                 switch(i){
                     case 0:
                         start=false;
+                        score=0;
                         break;
                     case 1:
                         if(getContext() instanceof Game){
@@ -196,18 +184,27 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
                     default:
                         break;
                 }
-                Log.i("Unit",String.valueOf(sl)+" "+String.valueOf(sr)+" "+String.valueOf(st)+" "+String.valueOf(sb));
-                Log.i("Unit",String.valueOf(x)+" "+String.valueOf(y));
             }
             return true;
         }
+
         if(event.getAction()==MotionEvent.ACTION_DOWN){
-            if(x>=this.x&&x<=this.x+w&&y>=this.y&&y<=this.y+h)
+            if(x>=this.x&&x<=this.x+w&&y>=this.y&&y<=this.y+h) {
+                lastx=x;
+                lasty=y;
                 touch = true;
+
+            }
         }else if(event.getAction()==MotionEvent.ACTION_MOVE){
             if(touch){
-                this.x=x;
-                this.y=y;
+                float detx=x-lastx;
+                float dety=y-lasty;
+
+                this.x+=detx;
+                this.y+=dety;
+
+                lastx=x;
+                lasty=y;
             }
         }else
             touch=false;
@@ -215,6 +212,20 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
     }
     @Override
     public void run() {
+        while(System.currentTimeMillis()-boottime<5000){
+            Canvas canvas=null;
+            try{
+               canvas=holder.lockCanvas(null);
+                if(canvas==null)
+                    break;
+                drawBackround(canvas);
+            }catch(Exception e){
+                Log.i("Unit", e.toString());
+            }finally {
+                if(canvas!=null)
+                    holder.unlockCanvasAndPost(canvas);
+            }
+        }
         while(!stop){
             Canvas canvas=null;
             try{
@@ -269,6 +280,7 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
     public void drawBackround(Canvas canvas){
 
         canvas.drawColor(Color.parseColor("#cccccc"));
+        canvas.drawText(String.valueOf(score),20,60,scorep);
         Bg cache;
         if(bg.size()==0){
             cache = new Bg(r.nextInt(getWidth()), 0, 20+r.nextInt(100));
@@ -278,13 +290,11 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
             cache=bg.getLast();
             if(cache.getY()>150) {
                 for (int i = 0; i < num; i++) {
-
                     if (bg_cache.size() > 0) {
                         cache = bg_cache.remove(0);
                         cache.init(r.nextInt(getWidth()), 0, 20+r.nextInt(100));
                     } else {
                         cache = new Bg(r.nextInt(getWidth()), 0, 20+r.nextInt(100));
-                        Log.i("Unit","new bg");
                    }
                     bg.add(cache);
                 }
@@ -297,7 +307,6 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
             tmp=bg.get(0);
             if(tmp.getY()-tmp.getRadius()>=h) {
                 bg_cache.add(bg.remove(0));
-                Log.i("Unit","cache");
             }
             else
                 break;
@@ -311,7 +320,6 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
     }
     public void drawMyp(Canvas canvas){
         canvas.drawBitmap(bmyp,x,y,p);
-        canvas.drawText(String.valueOf(score),20,60,scorep);
     }
     private void check(Canvas canvas){
         for(Bullet btmp:bullet){
@@ -351,8 +359,11 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
                 flag=true;
             if(flag){
                 sp.play(overID,1,1,1,0,1);
-                Log.i("Unit","stop");
+                sp.pause(shootID);
                 start=true;
+                if(getContext() instanceof Game){
+                    ((Game)getContext()).save(score);
+                }
                 flush();
             }
         }
@@ -399,7 +410,7 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
     }
     private void drawBullet(Canvas canvas){
         if(bullet.size()==0){
-            bullet.add(new Bullet(x +w / 2, y + 10));
+            bullet.add(new Bullet(x +w / 2-bbullet.getWidth()/2, y - 10));
             sp.play(shootID,1,1,1,0,1);
             return ;
         }
@@ -410,10 +421,10 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
                     if(bullet_cache.size()>0)
                     {
                         cache=bullet_cache.remove(0);
-                        cache.init(x +w / 2, y + 10);
+                        cache.init(x +w / 2-bbullet.getWidth()/2, y - 10);
 
                     }else
-                        cache=new Bullet(x +w / 2, y + 10);
+                        cache=new Bullet(x +w / 2-bbullet.getWidth()/2, y - 10);
 
                     bullet.add(cache);
                     sp.play(shootID,1,1,1,0,1);
@@ -432,7 +443,6 @@ public class MySurface extends SurfaceView implements SurfaceHolder.Callback,Run
         for(int i=0;i<l;i++){
             tmp=bullet.get(i);
             canvas.drawBitmap(bbullet,tmp.getX(),tmp.getY(),p);
-            //tmp.setY(tmp.getY()-100);
             tmp.y-=15;
         }
     }

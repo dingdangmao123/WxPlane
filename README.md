@@ -15,5 +15,6 @@ WxPlane 是一个简单的微信打飞机游戏，基于Android SurfaceView 以�
 
 ![over](/snap/3.png)
 
+![score](/snap/3.png)
 
 
